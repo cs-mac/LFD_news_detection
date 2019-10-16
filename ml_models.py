@@ -10,10 +10,10 @@ class FeaturesExtractor(BaseEstimator, TransformerMixin):
 
     def transform(self, subs):
         features = {}
-        features['title'] = [item[0] for item in subs]
+        features['title'] = [title for (title, words, x_high) in subs]
         # features['char'] = [" ".join(item[1]) for item in subs]
-        features['text'] = [item[1] for item in subs]
-        features['text_high'] = [item[2] for item in subs]
+        features['text'] = [words for (title, words, x_high) in subs]
+        features['text_high'] = [x_high for (title, words, x_high) in subs]
         # features['named_ent'] = [item[3] for item in subs]
 
         return features

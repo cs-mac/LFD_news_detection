@@ -90,8 +90,69 @@ def train(pipeline, X, y, categories, show_plots=False):
 
     plt.close()
 
+def do_grid_search(X, y, pipeline, parameters, title="", start=False):
+    '''
+    Do 5 fold cross-validated gridsearch over certain parameters and
+    print the best parameters found according to accuracy
+    '''
+    if not start:
+        print("\n#### SKIPPING GRIDSEARCH...")
+    else:
+        print(f"\n#### GRIDSEARCH [{title}] ...")
+        grid_search = GridSearchCV(pipeline, parameters, n_jobs=-1, cv=5, scoring='accuracy', return_train_score=True) 
+        grid_search.fit(X, y)
+
+        df = pd.DataFrame(grid_search.cv_results_)[['params','mean_train_score','mean_test_score']]
+        print(f"\n{df}\n")
+
+        # store results for further evaluation
+        with open('grid_' + title + '_pd.pickle', 'wb') as f:
+            pickle.dump(df, f, protocol=pickle.HIGHEST_PROTOCOL)        
+   
+        print("Best score: {0}".format(grid_search.best_score_))  
+        print("Best parameters set:")  
+        best_parameters = grid_search.best_estimator_.get_params()  
+        for param_name in sorted(list(parameters.keys())):  
+            print("\t{0}: {1}".format(param_name, best_parameters[param_name]))           
+
+def test(classifier, Xtest, Ytest, categories, show_plots=False):
+    Yguess = classifier.predict(Xtest)
+
+    print("\n#### TESTING...")
+    print(f"Classifier used: {classifier.named_steps['clf']}")
+
+    confusion_m = np.zeros(shape=(len(categories),len(categories)))
+
+    print(f"accuracy = {round(accuracy_score(Ytest, Yguess), 5)}\n")
+
+    print(classification_report(Ytest, Yguess))
+    confusion_m = np.add(confusion_m, confusion_matrix(Ytest, Yguess, labels = categories))
+    print('Confusion matrix')
+    print(confusion_m)
+
+    plt.figure(figsize = (10, 5), dpi = 150)
+    sn.set(font_scale = 1.4) 
+    hm = sn.heatmap(confusion_m, annot = True, fmt = 'g', annot_kws = {"size": 16}) 
+    hm.set(xticklabels = categories, yticklabels = categories)
+    hm.set_yticklabels(hm.get_yticklabels(), rotation=0)
+    plt.title('Confusion Matrix ' + type(classifier['clf']).__name__)
+    if show_plots:
+        plt.show()
+    plt.savefig('TESTING_' + type(classifier['clf']).__name__ + "_confusion_matrix.png")
 
 def main(argv):
+
+    parameters = {
+        'linear': {  
+            'clf__C': np.logspace(-3, 2, 6),
+        },
+        'rbf': {
+            'clf__C': np.logspace(-3, 2, 6),
+            'clf__gamma': np.logspace(-3, 2, 6),
+            'clf__kernel': ['rbf']
+        }
+    }
+    kernel = 'linear'
 
     ################# REMOVE LATER #######################
 
@@ -121,7 +182,12 @@ def main(argv):
     classifier_words = model_words()
     classifier_title = model_title()
 
+    #do_grid_search(Xtrain, Ytrain, classifier_words, parameters[kernel], title=kernel, start = False)
+    #do_grid_search(Xtrain, Ytrain, classifier_title, parameters[kernel], title=kernel, start = False)
+
     train(classifier_words, Xtrain, Ytrain, categories)
+    test(classifier_words, Xtest, Ytest, categories)
+    #test(classifier_title, Xtest, Ytest, categories)
 
 if __name__ == '__main__':
     main(sys.argv)
