@@ -10,10 +10,10 @@ class FeaturesExtractor(BaseEstimator, TransformerMixin):
 
     def transform(self, subs):
         features = {}
-        features['text'] = [item[0] for item in subs]
-        # features['char'] = [" ".join(item[0]) for item in subs]
-        features['text_high'] = [item[1] for item in subs]
-        features['pos_tag'] = [item[2] for item in subs]
+        features['title'] = [item[0] for item in subs]
+        # features['char'] = [" ".join(item[1]) for item in subs]
+        features['text'] = [item[1] for item in subs]
+        features['text_high'] = [item[2] for item in subs]
         # features['named_ent'] = [item[3] for item in subs]
 
         return features
@@ -48,7 +48,7 @@ def model_words():
                 ('words', Pipeline([
                     ('selector', ItemSelector(key='text')),
                     ('tfidf', TfidfVectorizer(preprocessor = identity, tokenizer = identity, 
-                                              max_df = .2, ngram_range = (1,2))),
+                                              max_df = .2)),
                     ('chi-square', SelectKBest(chi2, 3000)),
                 ])),
 
@@ -66,10 +66,10 @@ def model_words():
                 ])),
 
                 # Pipeline for POS tags
-                ('pos_tag', Pipeline([
-                    ('selector', ItemSelector(key='pos_tag')),
-                    ('tfidf', TfidfVectorizer(preprocessor = identity, tokenizer = identity)),
-                ])),
+                # ('pos_tag', Pipeline([
+                #     ('selector', ItemSelector(key='pos_tag')),
+                #     ('tfidf', TfidfVectorizer(preprocessor = identity, tokenizer = identity)),
+                # ])),
 
                 # Pipeline for named entity tags
                 # ('named_ent', Pipeline([
@@ -103,47 +103,18 @@ def model_title():
         ('union', FeatureUnion(
             # n_jobs = -1,
             transformer_list = [
-                # Pipeline bag-of-words model 
-                ('words', Pipeline([
-                    ('selector', ItemSelector(key='text')),
-                    ('tfidf', TfidfVectorizer(preprocessor = identity, tokenizer = identity, 
-                                              max_df = .2, ngram_range = (1,2))),
-                    ('chi-square', SelectKBest(chi2, 3000)),
-                ])),
-
-                # # Pipeline for character features
-                # ('chars', Pipeline([
-                #     ('selector', ItemSelector(key='char')),
-                #     ('tfidf', TfidfVectorizer(analyzer='char', preprocessor = identity, tokenizer = identity, ngram_range=(3,10))),
-                # ])),
-
-                # Pipeline for high info words bag-of-words model 
-                ('text_high', Pipeline([
-                    ('selector', ItemSelector(key='text_high')),
-                    ('tfidf', TfidfVectorizer(preprocessor = identity, tokenizer = identity, 
-                                              max_df = .2)),
-                ])),
-
-                # Pipeline for POS tags
-                ('pos_tag', Pipeline([
-                    ('selector', ItemSelector(key='pos_tag')),
+               
+                # Pipeline for title words
+                ('title', Pipeline([
+                    ('selector', ItemSelector(key='title')),
                     ('tfidf', TfidfVectorizer(preprocessor = identity, tokenizer = identity)),
                 ])),
-
-                # Pipeline for named entity tags
-                # ('named_ent', Pipeline([
-                #     ('selector', ItemSelector(key='named_ent')),
-                #     ('tfidf', TfidfVectorizer(preprocessor = identity, tokenizer = identity)),
-                # ])),
 
             ],
 
             # weight components in FeatureUnion
             transformer_weights={ 
-                # 'text': .3,
-                # 'chars': .4,
-                # 'text_high' : .7,
-                # 'pos_tag': .1,
+                # 'title': .3,
             },
         )),
         # Use a classifier on the combined features
