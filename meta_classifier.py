@@ -203,6 +203,7 @@ def main(argv):
     sclf = StackingCVClassifier(classifiers=[classifier_title, classifier_words],
                                 use_probas=False,
                                 meta_classifier=classifier_meta_SVM,
+                                n_jobs=-1,
                                 random_state=42)
 
     Xtrain_balanced = Xtrain

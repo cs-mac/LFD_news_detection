@@ -45,7 +45,7 @@ def model_words():
         ('features', FeaturesExtractor()),
         # Use FeatureUnion to combine the features from subject and body
         ('union', FeatureUnion(
-            # n_jobs = -1,
+            #n_jobs = -1,
             transformer_list = [
                 # Pipeline bag-of-words model 
                 ('words', Pipeline([
@@ -107,7 +107,7 @@ def model_title():
         ('features', FeaturesExtractor()),
         # Use FeatureUnion to combine the features from subject and body
         ('union', FeatureUnion(
-            # n_jobs = -1,
+            #n_jobs = -1,
             transformer_list = [
                
                 # Pipeline for title words
