@@ -35,6 +35,9 @@ def identity(x):
 
 
 def model_words():
+    '''
+    The model + pipeline for features extracted from the text
+    '''
     clfs = [svm.SVC(kernel='linear', C=1.0)]
     
     classifier = Pipeline([
@@ -94,6 +97,9 @@ def model_words():
 
 
 def model_title():
+    '''
+    The model + pipeline for features extracted from the title
+    '''    
     clfs = [svm.SVC(kernel='linear', C=1.0)]
     
     classifier = Pipeline([
@@ -121,3 +127,10 @@ def model_title():
         ('clf', clfs[0]),
     ])
     return classifier    
+
+
+def model_meta_SVM():
+    '''
+    The final meta classifier using the outputs from the other models as input
+    '''
+    return svm.SVC(kernel='linear', C=1.0)

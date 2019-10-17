@@ -14,6 +14,7 @@ from nltk.metrics import BigramAssocMeasures
 from nltk.probability import ConditionalFreqDist, FreqDist
 from nltk.stem import SnowballStemmer
 from sklearn.feature_extraction import stop_words
+from sklearn.preprocessing import LabelBinarizer
 
 nlp = spacy.load("en_core_web_sm")
 snow = SnowballStemmer('english')
@@ -36,9 +37,11 @@ def read_corpus(corpus_file):
     scikit_stopword_set = set(stop_words.ENGLISH_STOP_WORDS) #318 words
     union_stopword_set = nltk_stopword_set | scikit_stopword_set # 378 words    
     documents, labels = [], []
-    tokenizer = tfds.features.text.Tokenizer()
-
+    tokenizer = tfds.features.text.Tokenizer() 
     data = pd.read_csv(corpus_file, sep='\t')
+
+    print("\n ### Distribution of the data")
+    print(data.groupby("bias").size(), end="\n\n")
 
     for item in data.itertuples():
         text = item.text
@@ -188,5 +191,7 @@ def read_and_process(file):
     # X_ent = return_named_ent(X, "data")
     
     X = [(title, words, x_high) for (title, words), x_high in zip(X, X_high_info)]
+    encoder = LabelBinarizer()
+    Y = encoder.fit_transform(Y) 
 
     return X, Y
