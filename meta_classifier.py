@@ -34,7 +34,7 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.pipeline import FeatureUnion, Pipeline
 from sklearn.tree import DecisionTreeClassifier
 
-from ml_models import model_title, model_words, model_meta_SVM
+from ml_models import *
 from preprocessing_data import read_and_process
 
 os.environ['KMP_WARNINGS'] = '0'
@@ -43,6 +43,15 @@ deprecation._PRINT_DEPRECATION_WARNINGS = False
 
 nlp = spacy.load("en_core_web_sm")
 snow = SnowballStemmer('english')
+
+# TODO
+# Classifiers for hyperpartisan only (then move to restricted bias classifier)
+# Maybe think of more classifiers for bias as well
+# Embeddings (maybe GloVe or W2V | mabye test embeddings.json from assigment as well)
+# Test different features
+# Hyperparameter tuning
+# Try different combinations with the stacking classifier - TESTING CURRENTLY
+# Test on whole data
 
 def do_grid_search(X, y, pipeline, parameters, title="", start=False):
     '''
@@ -195,28 +204,29 @@ def main(argv):
 
     classifier_words = model_words()
     classifier_title = model_title()
-    classifier_meta_SVM = model_meta_SVM()
+    classifier_meta = model_meta()
+    classifier_test = model_test()
 
     do_grid_search(Xtrain, Ytrain, classifier_words, parameters[kernel], title=kernel, start = False)
     do_grid_search(Xtrain, Ytrain, classifier_title, parameters[kernel], title=kernel, start = False)
 
     sclf = StackingCVClassifier(classifiers=[classifier_title, classifier_words],
                                 use_probas=False,
-                                meta_classifier=classifier_meta_SVM,
+                                meta_classifier=classifier_meta,
                                 n_jobs=-1,
                                 random_state=42)
 
-    Xtrain_balanced = Xtrain
-    Ytrain_balanced = list(Ytrain)
-    for x_tuple, label in zip(Xtrain, Ytrain):
-        if label == 3:
-            for i in range(10):
-                Xtrain_balanced.append(x_tuple)
-                Ytrain_balanced.append(label)                        
+    # Xtrain_balanced = Xtrain
+    # Ytrain_balanced = list(Ytrain)
+    # for x_tuple, label in zip(Xtrain, Ytrain):
+    #     if label == 3:
+    #         for i in range(10):
+    #             Xtrain_balanced.append(x_tuple)
+    #             Ytrain_balanced.append(label)                        
 
     for clf, label in zip([classifier_title, classifier_words, sclf], ['Title_SVM', 'Words_SVM', 'StackingClassifier']):
-        train(clf, Xtrain_balanced, Ytrain_balanced, categories, show_report=True, title=label, folds=5)
+        train(clf, Xtrain, Ytrain, categories, show_report=False, title=label, folds=5)
         test(clf, Xtest, Ytest, categories, title=label)
-    
+
 if __name__ == '__main__':
     main(sys.argv)
