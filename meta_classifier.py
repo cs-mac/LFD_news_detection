@@ -174,28 +174,25 @@ def main(argv):
 
     ################# REMOVE LATER #######################
 
-    print("#### Getting Pickle File")
+    # print("#### Getting Pickle File")
 
-    import pickle    
+    # import pickle    
 
-    with open('small_data.pickle', 'rb') as handle:
-        Xtrain, Xtest, Ytrain, Ytest = pickle.load(handle)
+    # with open('small_data.pickle', 'rb') as handle:
+    #     Xtrain, Xtest, Ytrain, Ytest = pickle.load(handle)
 
     ######################################################
 
-    # if len(argv) == 2:
-    #     X, Y = read_and_process(argv[1])
-    #     Xtrain, Xtest, Ytrain, Ytest = train_test_split(X, Y, test_size=0.25, random_state=42)
-    # elif len(argv) == 3:
-    #     Xtrain, Ytrain = read_and_process(argv[1])
-    #     Xtest, Ytest = read_and_process(argv[2])
-    # else:
-    #     print("Usage: python3 meta_classifier.py <trainset> <testset>", file=sys.stderr)
+    if len(argv) == 2:
+        X, Y = read_and_process(argv[1])
+        Xtrain, Xtest, Ytrain, Ytest = train_test_split(X, Y, test_size=0.25, random_state=42)
+        # Xtrain, Xtest, Ytrain, Ytest = Xtrain[:2000], Xtest[:500], Ytrain[:2000], Ytest[:500]
+    elif len(argv) == 3:
+        Xtrain, Ytrain = read_and_process(argv[1], title="Train")
+        Xtest, Ytest = read_and_process(argv[2], title="Test")
+    else:
+        print("Usage: python3 meta_classifier.py <trainset> <testset>", file=sys.stderr)
 
-    # with open('encoded_data.pickle', 'wb') as handle:
-    #     pickle.dump((Xtrain[:2000], Xtest[:500], Ytrain[:2000], Ytest[:500]), handle, protocol=pickle.HIGHEST_PROTOCOL)
-
-    # think of better way to do this
     translation_dict = {"left": 0, "left-center": 1, "least": 2, "right-center": 3, "right": 4}
     Ytrain = np.array([translation_dict[i] for i in Ytrain])
     Ytest = np.array([translation_dict[i] for i in Ytest])
@@ -213,16 +210,8 @@ def main(argv):
     sclf = StackingCVClassifier(classifiers=[classifier_title, classifier_words],
                                 use_probas=False,
                                 meta_classifier=classifier_meta,
-                                n_jobs=-1,
-                                random_state=42)
-
-    # Xtrain_balanced = Xtrain
-    # Ytrain_balanced = list(Ytrain)
-    # for x_tuple, label in zip(Xtrain, Ytrain):
-    #     if label == 3:
-    #         for i in range(10):
-    #             Xtrain_balanced.append(x_tuple)
-    #             Ytrain_balanced.append(label)                        
+                                # n_jobs=-1,
+                                random_state=42)                      
 
     for clf, label in zip([classifier_title, classifier_words, sclf], ['Title_SVM', 'Words_SVM', 'StackingClassifier']):
         train(clf, Xtrain, Ytrain, categories, show_report=False, title=label, folds=5)

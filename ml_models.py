@@ -99,7 +99,7 @@ def model_words():
             },
         )),
         # Use a classifier on the combined features
-        ('clf', clfs[0]),
+        ('clf', clfs[2]),
     ])
     return classifier
 
@@ -132,7 +132,7 @@ def model_title():
             },
         )),
         # Use a classifier on the combined features
-        ('clf', clfs[0]),
+        ('clf', clfs[2]),
     ])
     return classifier    
 
@@ -192,5 +192,4 @@ def model_meta():
     '''
     The final meta classifier using the outputs from the other models as input
     '''
-    # return LinearSVC()
     return svm.SVC(kernel='linear', C=1.0)

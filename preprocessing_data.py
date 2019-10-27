@@ -28,34 +28,45 @@ def uniques(words, badwords=False):
     return set(words) - set(badwords)
 
 
-def read_corpus(corpus_file):
+def read_corpus(corpus_file, title="Training"):
     '''
     Create a bag-of-words and labels from a file
     '''
-    tokenizer = tfds.features.text.Tokenizer()
-    nltk_stopword_set = set(stopwords.words('english')) #179 words
-    scikit_stopword_set = set(stop_words.ENGLISH_STOP_WORDS) #318 words
-    union_stopword_set = nltk_stopword_set | scikit_stopword_set # 378 words    
-    documents, labels = [], []
-    tokenizer = tfds.features.text.Tokenizer() 
-    data = pd.read_csv(corpus_file, sep='\t')
+    # tokenizer = tfds.features.text.Tokenizer()
+    # nltk_stopword_set = set(stopwords.words('english')) #179 words
+    # scikit_stopword_set = set(stop_words.ENGLISH_STOP_WORDS) #318 words
+    # union_stopword_set = nltk_stopword_set | scikit_stopword_set # 378 words    
+    # documents, labels = [], []
+    # tokenizer = tfds.features.text.Tokenizer() 
+    # data = pd.read_csv(corpus_file, sep='\t')
 
-    print("\n ### Distribution of the data")
+    # print("\n#### Distribution of the data")
+    # print(data.groupby("bias").size(), end="\n\n")
+
+    # for item in data.itertuples():
+    #     text = item.text
+    #     title = item.title
+    #     if type(item.text) != str:
+    #         text = ""
+    #     if type(item.title) != str:
+    #         title = ""
+    #     documents.append((tokenizer.tokenize(title.strip()),
+    #                      tokenizer.tokenize(text.strip())))
+    #     labels.append(item.bias)
+        
+    documents, labels = [], []    
+    data = pd.read_csv(corpus_file)
+
+    print(f"\n#### Distribution of the data [{title}]")
     print(data.groupby("bias").size(), end="\n\n")
 
     for item in data.itertuples():
-        text = item.text
-        title = item.title
-        if type(item.text) != str:
-            text = ""
-        if type(item.title) != str:
-            title = ""
-        documents.append((tokenizer.tokenize(title.strip()),
-                         tokenizer.tokenize(text.strip())))
-        labels.append(item.bias)
-        
-    return documents, labels
+        text, title, bias = item.text, item.title, item.bias
+        documents.append((title.strip().split(), text.strip().split()))
+        labels.append(bias)
 
+    return documents, labels
+    
 
 def preprocessing(documents):
     '''
@@ -116,7 +127,7 @@ def high_information_words(X, y, title):
         for word in words:
             distinct_words.add(word)
 
-    high_info_words = set(get_high_information_words(labelled_words, BigramAssocMeasures.chi_sq, 7)) # 7
+    high_info_words = set(get_high_information_words(labelled_words, BigramAssocMeasures.chi_sq, 10)) # 10
 
     print("\tNumber of words in the data: %i" % amount_words)
     print("\tNumber of distinct words in the data: %i" % len(distinct_words))
@@ -174,11 +185,11 @@ def return_pos_tagged(X, title="data"):
     return named_ent
 
 
-def read_and_process(file):
+def read_and_process(file, title=""):
     '''
     Reads in data from file to pandas dataframe, and preprocesses the data for the model
     '''
-    X, Y = read_corpus(file)
+    X, Y = read_corpus(file, title=title)
     
     categories = set(Y)
     
@@ -191,7 +202,5 @@ def read_and_process(file):
     # X_ent = return_named_ent(X, "data")
     
     X = [(title, words, x_high) for (title, words), x_high in zip(X, X_high_info)]
-    encoder = LabelBinarizer()
-    Y = encoder.fit_transform(Y) 
 
     return X, Y
