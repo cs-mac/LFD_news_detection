@@ -150,11 +150,11 @@ def return_pos_tagged(X, title="data"):
     return named_ent
 
 
-def read_and_process(file, title=""):
+def read_and_process(file, title="", train=False):
     '''
     Reads in data from file to pandas dataframe, and preprocesses the data for the model
     '''
-    X, Y = read_corpus(file, title=title)
+    X, Y = read_corpus(file, title=title, train=train)
     
     categories = set(Y)
     

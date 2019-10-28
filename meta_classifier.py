@@ -148,7 +148,7 @@ def main(argv):
     kernel = 'linear'
 
     if len(argv) == 2:
-        X, Y = read_and_process(argv[1])
+        X, Y = read_and_process(argv[1], train=True)
         Xtrain, Xtest, Ytrain, Ytest = train_test_split(X, Y, test_size=0.20, random_state=42)
     elif len(argv) == 3:
         Xtrain, Ytrain = read_and_process(argv[1], title="Train", train=True)
