@@ -15,7 +15,7 @@ def clean_text(txt, flat=True, line_blacklist={''}, token_blacklist=set()):
     if len(lines) == 0:
         return '.'
 
-    txt = ' '.join()
+    txt = ' '.join(lines)
 
     if '?' in txt and txt.index('?') != len(txt) - 1:
         first_idx = txt.index('?')
