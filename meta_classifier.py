@@ -1,57 +1,20 @@
 #!/usr/bin/env python3
 
-import collections
-import os
-import re
 import sys
-from collections import Counter
 
 import numpy as np
 import pandas as pd
-import progressbar
 import seaborn as sn
-import spacy
-import tensorflow as tf
-import tensorflow.python.util.deprecation as deprecation
-import tensorflow_datasets as tfds
 from matplotlib import pyplot as plt
 from mlxtend.classifier import StackingCVClassifier
-from nltk.corpus import stopwords
-from nltk.metrics import BigramAssocMeasures
-from nltk.probability import ConditionalFreqDist, FreqDist
-from nltk.stem import SnowballStemmer
 from sklearn import model_selection
-from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.feature_extraction import stop_words
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.feature_selection import SelectKBest, chi2
 from sklearn.metrics import (accuracy_score, classification_report,
                              confusion_matrix)
 from sklearn.model_selection import (GridSearchCV, StratifiedKFold,
                                      cross_validate, train_test_split)
-from sklearn.naive_bayes import MultinomialNB
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.pipeline import FeatureUnion, Pipeline
-from sklearn.tree import DecisionTreeClassifier
 
 from ml_models import *
 from preprocessing_data import read_and_process
-
-os.environ['KMP_WARNINGS'] = '0'
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-deprecation._PRINT_DEPRECATION_WARNINGS = False
-
-nlp = spacy.load("en_core_web_sm")
-snow = SnowballStemmer('english')
-
-# TODO
-# Classifiers for hyperpartisan only (then move to restricted bias classifier)
-# Maybe think of more classifiers for bias as well
-# Embeddings (maybe GloVe or W2V | mabye test embeddings.json from assigment as well)
-# Test different features
-# Hyperparameter tuning
-# Try different combinations with the stacking classifier - TESTING CURRENTLY
-# Test on whole data
 
 def do_grid_search(X, y, pipeline, parameters, title="", start=False):
     '''
@@ -129,7 +92,7 @@ def train(pipeline, X, y, categories, show_plots=False, show_report=False, folds
     plt.close()
           
 
-def test(classifier, Xtest, Ytest, categories, show_plots=False, title="title"):
+def test(classifier, Xtest, Ytest, categories, show_cm=False, show_plots=False, title="title"):
     Yguess = classifier.predict(Xtest)
 
     print(f"\n#### TESTING... [{title}]")
@@ -144,6 +107,7 @@ def test(classifier, Xtest, Ytest, categories, show_plots=False, title="title"):
 
     print(classification_report(Ytest, Yguess))
     confusion_m = np.add(confusion_m, confusion_matrix(Ytest, Yguess, labels = categories))
+    
     print('Confusion matrix')
     print(confusion_m)
 
@@ -153,7 +117,7 @@ def test(classifier, Xtest, Ytest, categories, show_plots=False, title="title"):
     hm.set(xticklabels = categories, yticklabels = categories)
     hm.set_yticklabels(hm.get_yticklabels(), rotation=0)
     plt.title('Confusion Matrix ' + title)
-    if show_plots:
+    if show_plots or show_all:
         plt.show()
     plt.savefig('TESTING_' + title + "_confusion_matrix.png")
 
@@ -185,10 +149,9 @@ def main(argv):
 
     if len(argv) == 2:
         X, Y = read_and_process(argv[1])
-        Xtrain, Xtest, Ytrain, Ytest = train_test_split(X, Y, test_size=0.25, random_state=42)
-        # Xtrain, Xtest, Ytrain, Ytest = Xtrain[:2000], Xtest[:500], Ytrain[:2000], Ytest[:500]
+        Xtrain, Xtest, Ytrain, Ytest = train_test_split(X, Y, test_size=0.20, random_state=42)
     elif len(argv) == 3:
-        Xtrain, Ytrain = read_and_process(argv[1], title="Train")
+        Xtrain, Ytrain = read_and_process(argv[1], title="Train", train=True)
         Xtest, Ytest = read_and_process(argv[2], title="Test")
     else:
         print("Usage: python3 meta_classifier.py <trainset> <testset>", file=sys.stderr)
@@ -197,7 +160,7 @@ def main(argv):
     Ytrain = np.array([translation_dict[i] for i in Ytrain])
     Ytest = np.array([translation_dict[i] for i in Ytest])
     
-    categories = [0, 1, 2, 3, 4] # convert later to actual labels
+    categories = [0, 1, 2, 3, 4] 
 
     classifier_words = model_words()
     classifier_title = model_title()
@@ -210,7 +173,6 @@ def main(argv):
     sclf = StackingCVClassifier(classifiers=[classifier_title, classifier_words],
                                 use_probas=False,
                                 meta_classifier=classifier_meta,
-                                # n_jobs=-1,
                                 random_state=42)                      
 
     for clf, label in zip([classifier_title, classifier_words, sclf], ['Title_SVM', 'Words_SVM', 'StackingClassifier']):

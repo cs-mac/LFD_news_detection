@@ -4,3 +4,5 @@ data.pickle
 *.png
 *.csv
 .venv
+*.txt
+*.xz
