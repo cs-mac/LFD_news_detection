@@ -10,6 +10,9 @@ from tqdm import tqdm
 
 
 def clean_text(txt, flat=True, line_blacklist={''}, token_blacklist=set()):
+    if len(txt.strip()) == 0:
+        return '.'
+
     txt = ' '.join([l.strip() for l in txt.split('\n') if l.strip() not in line_blacklist])
 
     if len(txt) == 0:
