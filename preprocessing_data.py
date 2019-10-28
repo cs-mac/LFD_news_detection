@@ -160,10 +160,9 @@ def read_and_process(file, title="", train=False):
     
     preprocessing([text for _, title, text in X])
 
-    X_high_info = return_high_info([text for _, title, text in X], Y, "data")
+    X_high_info = return_high_info([text for _, title, text in X], Y, title)
     
     # X_pos = return_pos_tagged(X, "data")
-    
     # X_ent = return_named_ent(X, "data")
     
     X = [(x_id, title, words, x_high) for (x_id, title, words), x_high in zip(X, X_high_info)]

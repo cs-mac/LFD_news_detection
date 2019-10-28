@@ -90,14 +90,13 @@ def train(pipeline, X, y, categories, show_plots=False, show_cm=False, show_repo
     plt.figure(figsize = (16, 9), dpi=150)
     sn.set(font_scale=1.4) #label size
     hm = sn.heatmap(confusion_m, annot=True, fmt='g', annot_kws={"size": 16}) #font size
+    hm.set_ylim(5.0, 0)
     hm.set(xticklabels = categories, yticklabels = categories)
     hm.set_yticklabels(hm.get_yticklabels(), rotation=0)
     plt.title(title + ' Confusion Matrix')
     if show_plots:
         plt.show()
-
     hm.figure.savefig('TRAINING_'+ title + '_confusion_matrix' + '.png', figsize = (16, 9), dpi=150)
-
     plt.close()
           
 
@@ -138,12 +137,14 @@ def test(classifier, Xtest, Ytest, show_cm=False, show_plots=False, show_report=
     plt.figure(figsize = (10, 5), dpi = 150)
     sn.set(font_scale = 1.4) 
     hm = sn.heatmap(confusion_m, annot = True, fmt = 'g', annot_kws = {"size": 16}) 
+    hm.set_ylim(5.0, 0)
     hm.set(xticklabels = inverse_dict, yticklabels = inverse_dict)
     hm.set_yticklabels(hm.get_yticklabels(), rotation=0)
     plt.title('Confusion Matrix ' + title)
     if show_plots:
         plt.show()
     plt.savefig('TESTING_' + title + "_confusion_matrix.png")
+    plt.close()
 
 
 def main(argv):
