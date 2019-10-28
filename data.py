@@ -10,13 +10,12 @@ from tqdm import tqdm
 
 
 def clean_text(txt, flat=True, line_blacklist={''}, token_blacklist=set()):
-    if len(txt.strip()) == 0:
+    lines = [l.strip() for l in txt.split('\n') if l.strip() not in line_blacklist]
+
+    if len(lines) == 0:
         return '.'
 
-    txt = ' '.join([l.strip() for l in txt.split('\n') if l.strip() not in line_blacklist])
-
-    if len(txt) == 0:
-        return '.'
+    txt = ' '.join()
 
     if '?' in txt and txt.index('?') != len(txt) - 1:
         first_idx = txt.index('?')
