@@ -1,15 +1,24 @@
 import time
+import sys
+
 from torchtext.data import Iterator
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.utils.rnn import pack_padded_sequence
 
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import classification_report, confusion_matrix
 
 import numpy as np
 
 from data import get_dataset
+
+BATCH_SIZE = 64
+
+bias_criterion = nn.NLLLoss()
+hyperp_criterion = nn.BCELoss()
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 def evaluate(model, data):
@@ -20,7 +29,7 @@ def evaluate(model, data):
     hyperp_true, hyperp_pred = [], []
 
     with torch.no_grad():
-        test_iter = get_iterator(data, batch_size)
+        test_iter = get_iterator(data, BATCH_SIZE)
         for batch in test_iter:
             titles, title_lengths = batch.title
             texts, text_lengths = batch.text
@@ -42,11 +51,18 @@ def evaluate(model, data):
     hyperp_correct = int(np.equal(hyperp_true, hyperp_pred).sum())
     n = len(bias_true)
 
+    # print(confusion_matrix(bias_true, bias_pred, labels=bias_labels))
+    # print(confusion_matrix(hyperp_true, hyperp_pred))
+
+    bias_names = data.fields['bias'].vocab.itos
     bias_labels = [data.fields['bias'].vocab.stoi[l]
                    for l in ['left', 'left-center', 'least', 'right-center', 'right']]
 
-    print(confusion_matrix(bias_true, bias_pred, labels=bias_labels))
-    print(confusion_matrix(hyperp_true, hyperp_pred))
+    print(' > Classification Report:')
+    print(classification_report(bias_true, bias_pred, target_names=bias_names, labels=bias_labels))
+
+    print('',confusion_matrix(bias_true, bias_pred, labels=bias_labels))
+    # print(classification_report(bias_true, bias_pred, target_names=bias_names, labels=bias_labels))
 
     return total_loss / n, bias_correct / n, hyperp_correct / n
 
@@ -111,12 +127,12 @@ class BiLSTM(nn.Module):
         return X_bias, X_hyperp
 
 
-def train():
+def train(model, train_data, optimizer, epoch):
     model.train()
     total_loss, total, bias_correct, hyperp_correct = 0., 0, 0, 0
     start_time = time.time()
 
-    train_iter = get_iterator(train_data, batch_size)
+    train_iter = get_iterator(train_data, BATCH_SIZE)
 
     for i, batch in enumerate(train_iter):
         titles, title_lengths = batch.title
@@ -157,42 +173,68 @@ def train():
             start_time = time.time()
 
 
-print(' > Loading data')
-train_data, val_data = get_dataset('hyperp-training-grouped.csv.xz', full_training=False,
-                                   random_valid=True, lower=False, vectors='glove.840B.300d')
-print(' > Data loaded')
+def run_training(model, train_data, test_data):
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=0.001)  #
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(device)
+    best_val_loss = float("inf")
+    all_bias_acc, all_hyperp_acc = [], []
+    epochs = 30
+    best_model = None
 
-batch_size = 64
+    for epoch in range(1, epochs + 1):
+        epoch_start_time = time.time()
+        train(model, train_data, optimizer, epoch)
+        val_loss, bias_acc, hyperp_acc = evaluate(model, test_data)
+        print('-' * 89)
+        print('| end of epoch {:3d} | time: {:5.2f}s | valid loss {:5.2f} | val bias acc {:5.2f} | val hyperp acc {:5.2f}'.format(
+            epoch, (time.time() - epoch_start_time), val_loss, bias_acc, hyperp_acc))
+        print('-' * 89)
 
-bias_vocab = train_data.fields['bias'].vocab
-title_vocab = train_data.fields['title'].vocab
-text_vocab = train_data.fields['text'].vocab
+        all_bias_acc.append(bias_acc)
+        all_hyperp_acc.append(hyperp_acc)
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+            best_model = model
 
-model = BiLSTM(len(title_vocab), len(text_vocab), title_vocab.vectors, text_vocab.vectors).to(device)
+    print(' > Finished training, saving best model to rnn-model.pt')
+    torch.save(best_model.state_dict(), 'rnn-model.pt')
 
-bias_criterion = nn.NLLLoss()
-hyperp_criterion = nn.BCELoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=0.001)  #
 
-best_val_loss = float("inf")
-all_bias_acc, all_hyperp_acc = [], []
-epochs = 30
-best_model = None
+def main():
+    if len(sys.argv) < 3:
+        print('Usage: python3 rnn.py <trainset> <testset> <model>')
+        exit()
 
-for epoch in range(1, epochs + 1):
-    epoch_start_time = time.time()
-    train()
-    val_loss, bias_acc, hyperp_acc = evaluate(model, val_data)
-    print('-' * 89)
-    print('| end of epoch {:3d} | time: {:5.2f}s | valid loss {:5.2f} | val bias acc {:5.2f} | val hyperp acc {:5.2f}'.format(
-        epoch, (time.time() - epoch_start_time), val_loss, bias_acc, hyperp_acc))
-    print('-' * 89)
+    train_path, test_path = sys.argv[1], sys.argv[2]
 
-    all_bias_acc.append(bias_acc)
-    all_hyperp_acc.append(hyperp_acc)
-    if val_loss < best_val_loss:
-        best_val_loss = val_loss
-        best_model = model
+    test_path = None
+    if len(sys.argv) >= 2:
+        test_path = sys.argv[2]
+
+    model_path = None
+    if len(sys.argv) > 3:
+        model_path = sys.argv[3]
+
+    print(' > Loading data')
+    train_data, test_data = get_dataset(train_path, test_path, full_training=True,
+                                        random_valid=True, lower=False, vectors='glove.840B.300d')
+    print(' > Data loaded')
+
+    # bias_vocab = train_data.fields['bias'].vocab
+    title_vocab = train_data.fields['title'].vocab
+    text_vocab = train_data.fields['text'].vocab
+    model = BiLSTM(len(title_vocab), len(text_vocab), title_vocab.vectors, text_vocab.vectors).to(device)
+
+    if model_path is not None:
+        print(' > Loading pretrained model')
+        model.load_state_dict(torch.load(model_path, map_location=device))
+    else:
+        print(' > Training model')
+        run_training(model, train_data, test_data)
+
+    print(' > Evaluating')
+    evaluate(model, test_data)
+
+
+if __name__ == '__main__':
+    main()

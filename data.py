@@ -135,7 +135,9 @@ def split_csv(full_path):
 
 
 def get_dataset(path, val_path=None, full_training=False, random_valid=False, max_length=256, lower=True, vectors=None):
-    full_path = prepare_csv(path)
+    full_path = prepare_csv(path, cleanup=True)
+    if val_path is not None:
+        val_path = prepare_csv(val_path)
 
     if full_training:
         train_path = full_path
