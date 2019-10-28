@@ -3,57 +3,22 @@
 import collections
 import re
 import sys
-from collections import Counter
 
 import pandas as pd
 import progressbar
 import spacy
-import tensorflow_datasets as tfds
-from nltk.corpus import stopwords
 from nltk.metrics import BigramAssocMeasures
 from nltk.probability import ConditionalFreqDist, FreqDist
-from nltk.stem import SnowballStemmer
-from sklearn.feature_extraction import stop_words
-from sklearn.preprocessing import LabelBinarizer
+
+from data import prepare_csv
 
 nlp = spacy.load("en_core_web_sm")
-snow = SnowballStemmer('english')
 
-def uniques(words, badwords=False):
-    '''
-    Returns set of unique words, and filters badwords from them
-    '''
-    if not badwords:
-        return set(words)
-    return set(words) - set(badwords)
-
-
-def read_corpus(corpus_file, title="Training"):
+def read_corpus(corpus_file, title="Training", train=False):
     '''
     Create a bag-of-words and labels from a file
     '''
-    # tokenizer = tfds.features.text.Tokenizer()
-    # nltk_stopword_set = set(stopwords.words('english')) #179 words
-    # scikit_stopword_set = set(stop_words.ENGLISH_STOP_WORDS) #318 words
-    # union_stopword_set = nltk_stopword_set | scikit_stopword_set # 378 words    
-    # documents, labels = [], []
-    # tokenizer = tfds.features.text.Tokenizer() 
-    # data = pd.read_csv(corpus_file, sep='\t')
-
-    # print("\n#### Distribution of the data")
-    # print(data.groupby("bias").size(), end="\n\n")
-
-    # for item in data.itertuples():
-    #     text = item.text
-    #     title = item.title
-    #     if type(item.text) != str:
-    #         text = ""
-    #     if type(item.title) != str:
-    #         title = ""
-    #     documents.append((tokenizer.tokenize(title.strip()),
-    #                      tokenizer.tokenize(text.strip())))
-    #     labels.append(item.bias)
-        
+    corpus_file = prepare_csv(corpus_file, cleanup=train)
     documents, labels = [], []    
     data = pd.read_csv(corpus_file)
 
@@ -116,7 +81,7 @@ def high_information_words(X, y, title):
     '''
     Get and display info on high info words
     '''
-    print(f"\n#### OBTAINING HIGH INFO WORDS [{title}]...")
+    print(f"#### OBTAINING HIGH INFO WORDS [{title}]...")
 
     labelled_words = []
     amount_words = 0

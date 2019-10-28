@@ -1,16 +1,17 @@
-from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.pipeline import FeatureUnion, Pipeline
-from sklearn import svm
-from sklearn.feature_selection import SelectKBest, chi2
-from sklearn.feature_extraction.text import TfidfVectorizer
+#!/usr/bin/env python3
 
-from sklearn.linear_model import LogisticRegression, LogisticRegressionCV
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.naive_bayes import MultinomialNB, GaussianNB 
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.svm import NuSVC, LinearSVC
+from sklearn import svm
+from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
-from sklearn.linear_model.passive_aggressive import PassiveAggressiveClassifier 
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.feature_selection import SelectKBest, chi2
+from sklearn.linear_model import LogisticRegression, LogisticRegressionCV
+from sklearn.linear_model.passive_aggressive import PassiveAggressiveClassifier
+from sklearn.naive_bayes import GaussianNB, MultinomialNB
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.pipeline import FeatureUnion, Pipeline
+from sklearn.svm import LinearSVC, NuSVC
 
 class FeaturesExtractor(BaseEstimator, TransformerMixin):
     def fit(self, x, y=None):
