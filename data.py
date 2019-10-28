@@ -82,6 +82,9 @@ def split_df(df):
 
 
 def prepare_csv(path):
+    if path.endswith('.csv'):
+        return path
+
     train_path = path + '.train.csv'
     val_path = path + '.val.csv'
     full_path = path + '.full.csv'
@@ -114,20 +117,32 @@ def prepare_csv(path):
     df.text = df.text.apply(clean_text, line_blacklist=line_blacklist, token_blacklist=token_blacklist).apply(
         mn.normalize).apply(mt.tokenize, return_str=True)
 
-    # Train / Validation split
+    return full_path
+
+
+def split_csv(full_path):
+    train_path = full_path.replace('.full.', '.train.')
+    val_path = full_path.replace('.full.', '.val.')
+
+    if os.path.isfile(train_path) and os.path.isfile(val_path):
+        return train_path, val_path, full_path
+
+    df = pd.read_csv(full_path)
+
     train_df, valid_df = split_df(df)
     train_df.to_csv(train_path, index=False)
     valid_df.to_csv(val_path, index=False)
-    df.to_csv(full_path, index=False)
 
-    return train_path, val_path, full_path
+    return train_path, val_path
 
 
-def get_dataset(path, full_training=False, random_valid=False, max_length=256, lower=True, vectors=None):
-    train_path, val_path, full_path = prepare_csv(path)
+def get_dataset(path, val_path=None, full_training=False, random_valid=False, max_length=256, lower=True, vectors=None):
+    full_path = prepare_csv(path)
 
     if full_training:
         train_path = full_path
+    else:
+        train_path, val_path = split_csv(full_path)
 
     hyperp_field = Field(sequential=False, use_vocab=False, preprocessing=lambda x: int(x == 'True'))
     bias_field = Field(use_vocab=True, sequential=False, is_target=True, unk_token=None)
