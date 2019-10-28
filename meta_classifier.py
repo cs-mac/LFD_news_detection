@@ -111,13 +111,16 @@ def test(classifier, Xtest, Ytest, show_cm=False, show_plots=False, show_report=
     '''
     Test the classifier and evaluate the results
     '''    
-    inverse_dict = ["left", "left-center", "least", "right-center", "right"]
-    hyperp_cat = ["false", "true"]
+    inverse_dict = ["left", "left-center", "least", "right-center", "right", "true", "false"]
+    joint_labels = ["true left", "true right", "false center-left", "false center-right", "false least"]
     Yguess = classifier.predict(Xtest)
     Ytest_bias = [inverse_dict[bias] for hyperp, bias in Ytest]
     Yguess_bias = [inverse_dict[bias] for bias in Yguess]
-    Ytest_hyperp = [hyperp for hyperp, bias in Ytest]
+    Ytest_hyperp = [inverse_dict[hyperp] for hyperp, bias in Ytest]
     Yguess_hyperp = ["true" if (inverse_dict[bias]=="left" or inverse_dict[bias]=="right") else "false" for bias in Yguess]
+    Ytest_joint = [" ".join((inverse_dict[hyperp], inverse_dict[bias])) for hyperp, bias in Ytest]
+    Yguess_joint = [" ".join(("true", inverse_dict[bias])) if (inverse_dict[bias]=="left" or inverse_dict[bias]=="right") \
+        else " ".join(("false", inverse_dict[bias])) for bias in Yguess]
 
     print(f"\n#### TESTING... [{title}]")
     try:
@@ -132,27 +135,36 @@ def test(classifier, Xtest, Ytest, show_cm=False, show_plots=False, show_report=
             for x_id, bias, hyperp in zip([i[0] for i in Xtest], Yguess_bias, Yguess_hyperp):
                 f.write(str(x_id) + " " + hyperp + " " + bias + "\n")
 
-    confusion_m_bias = np.zeros(shape=(len(inverse_dict), len(inverse_dict)))
-    confusion_m_hyperp = np.zeros(shape=(len(hyperp_cat), len(hyperp_cat)))
+    confusion_m_bias = np.zeros(shape=(len(inverse_dict[:5]), len(inverse_dict[:5])))
+    confusion_m_hyperp = np.zeros(shape=(len(inverse_dict[5:]), len(inverse_dict[5:])))
+    confusion_m_joint = np.zeros(shape=(len(joint_labels), len(joint_labels)))
 
-    print(f"accuracy (bias) = {round(accuracy_score(Ytest_bias, Yguess_bias), 5)}\n")
-    print(f"accuracy (hyperp) = {round(accuracy_score(Ytest_hyperp, Yguess_hyperp), 5)}\n")
+    print(f"\naccuracy (bias) = {round(accuracy_score(Ytest_bias, Yguess_bias), 5)}")
+    print(f"accuracy (hyperp) = {round(accuracy_score(Ytest_hyperp, Yguess_hyperp), 5)}")
+    print(f"accuracy (joint) = {round(accuracy_score(Ytest_joint, Yguess_joint), 5)}\n")
 
     if show_report:
+        print('Classification report [bias]\n')
         print(classification_report(Ytest_bias, Yguess_bias))
+        print('Classification report [hyperpartisan]\n')
         print(classification_report(Ytest_hyperp, Yguess_hyperp))
+        print('Classification report [joint]\n')
+        print(classification_report(Ytest_joint, Yguess_joint))
 
-    confusion_m_bias = np.add(confusion_m_bias, confusion_matrix(Ytest_bias, Yguess_bias, labels = inverse_dict))
-    confusion_m_hyperp = np.add(confusion_m_hyperp, confusion_matrix(Ytest_hyperp, Yguess_hyperp, labels = hyperp_cat))
+    confusion_m_bias = np.add(confusion_m_bias, confusion_matrix(Ytest_bias, Yguess_bias, labels = inverse_dict[:5]))
+    confusion_m_hyperp = np.add(confusion_m_hyperp, confusion_matrix(Ytest_hyperp, Yguess_hyperp, labels = inverse_dict[5:]))
+    confusion_m_hyperp = np.add(confusion_m_joint, confusion_matrix(Ytest_joint, Yguess_joint, labels = joint_labels))
     if show_cm:
         print('\nConfusion matrix [bias]')
         print(confusion_m_bias)
         print('\nConfusion matrix [hyperpartisan]')
         print(confusion_m_hyperp)
+        print('\nConfusion matrix [joint]')
+        print(confusion_m_joint)
 
-    create_confusion_matrix(confusion_m_bias, inverse_dict, y_lim_value=5.0, title=title+"_bias_", show_plots=show_plots, method="TESTING")
-    create_confusion_matrix(confusion_m_hyperp, hyperp_cat, y_lim_value=2.0, title=title+"_hyperp", show_plots=show_plots, method="TESTING")
-
+    create_confusion_matrix(confusion_m_bias, inverse_dict[:5], y_lim_value=5.0, title=title+"_bias_", show_plots=show_plots, method="TESTING")
+    create_confusion_matrix(confusion_m_hyperp, inverse_dict[5:], y_lim_value=2.0, title=title+"_hyperp", show_plots=show_plots, method="TESTING")
+    create_confusion_matrix(confusion_m_joint, joint_labels, y_lim_value=5.0, title=title+"_joint", show_plots=show_plots, method="TESTING")
 
 def main(argv):
     parser = argparse.ArgumentParser(description='Control everything')
@@ -182,10 +194,10 @@ def main(argv):
     else:
         print("Usage: python3 meta_classifier.py <trainset> <testset>", file=sys.stderr)
 
-    translation_dict = {"left": 0, "left-center": 1, "least": 2, "right-center": 3, "right": 4}
-    Ytrain = np.array([(hyperp, translation_dict[bias]) for hyperp, bias in Ytrain])
-    Ytest = np.array([(hyperp, translation_dict[bias]) for hyperp, bias in Ytest])
-    
+    translation_dict = {"left": 0, "left-center": 1, "least": 2, "right-center": 3, "right": 4, "true": 5, "false": 6}
+    Ytrain = np.array([(translation_dict[hyperp], translation_dict[bias]) for hyperp, bias in Ytrain])
+    Ytest = np.array([(translation_dict[hyperp], translation_dict[bias]) for hyperp, bias in Ytest])
+
     categories = [0, 1, 2, 3, 4] 
 
     classifier_words = model_words()
