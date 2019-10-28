@@ -85,13 +85,6 @@ def prepare_csv(path):
     if path.endswith('.csv'):
         return path
 
-    train_path = path + '.train.csv'
-    val_path = path + '.val.csv'
-    full_path = path + '.full.csv'
-
-    if os.path.isfile(train_path) and os.path.isfile(full_path):
-        return train_path, val_path, full_path
-
     df = pd.read_csv(path, compression='xz', sep='\t', encoding='utf-8',
                      usecols=['id', 'hyperp', 'bias', 'publisher', 'title', 'text']).dropna()
 
@@ -117,7 +110,10 @@ def prepare_csv(path):
     df.text = df.text.apply(clean_text, line_blacklist=line_blacklist, token_blacklist=token_blacklist).apply(
         mn.normalize).apply(mt.tokenize, return_str=True)
 
-    return full_path
+    new_path = path.replace('.xz', '')
+    df.to_csv(new_path, index=False)
+
+    return new_path
 
 
 def split_csv(full_path):
