@@ -55,16 +55,46 @@ def evaluate(model, data):
     # print(confusion_matrix(hyperp_true, hyperp_pred))
 
     bias_names = data.fields['bias'].vocab.itos
-    bias_labels = [data.fields['bias'].vocab.stoi[l]
-                   for l in ['left', 'left-center', 'least', 'right-center', 'right']]
 
-    print(' > Classification Report:')
-    print(classification_report(bias_true, bias_pred, target_names=bias_names, labels=bias_labels))
+    hyperp_true = ['true' if bias_names[i] in {'left', 'right'} else 'false' for i in bias_true]
+    hyperp_pred = ['true' if bias_names[i] in {'left', 'right'} else 'false' for i in bias_pred]
 
-    print('',confusion_matrix(bias_true, bias_pred, labels=bias_labels))
+    print(' > Hyperp results:')
+    print(classification_report(hyperp_true, hyperp_pred))
+
+    print(' > Bias results:')
+    print(classification_report(bias_true, bias_pred, target_names=bias_names))
+    print('', confusion_matrix(bias_true, bias_pred))
+
     # print(classification_report(bias_true, bias_pred, target_names=bias_names, labels=bias_labels))
 
     return total_loss / n, bias_correct / n, hyperp_correct / n
+
+
+def save_predictions(model, data, filename):
+    all_ids = []
+    all_preds = []
+    bias_itos = data.fields['bias'].vocab.itos
+
+    with torch.no_grad():
+        test_iter = get_iterator(data, BATCH_SIZE)
+        for batch in test_iter:
+            ids = batch.id
+            titles, title_lengths = batch.title
+            texts, text_lengths = batch.text
+            texts, text_lengths = batch.text
+
+            bias_output, _ = model(titles, title_lengths, texts, text_lengths)
+            all_preds.extend([bias_itos[int(i)] for i in torch.max(bias_output, 1)[1]])
+            all_ids.extend([int(i) for i in ids])
+
+    lines = []
+    for i, pred in zip(all_ids, all_preds):
+        hyperp = 'true' if pred in {'left', 'right'} else 'false'
+        lines.append('{} {} {}\n'.format(i, hyperp, pred))
+
+    with open(filename, 'w') as f:
+        f.writelines(lines)
 
 
 def get_iterator(dataset, batch_size, train=True):
@@ -197,7 +227,7 @@ def run_training(model, train_data, test_data):
             best_model = model
 
     print(' > Finished training, saving best model to rnn-model.pt')
-    torch.save(best_model.state_dict(), 'rnn-model.pt')
+    torch.save(best_model, 'rnn-model.pt')
 
 
 def main():
@@ -217,23 +247,25 @@ def main():
 
     print(' > Loading data')
     train_data, test_data = get_dataset(train_path, test_path, full_training=True,
-                                        random_valid=True, lower=False, vectors='glove.840B.300d')
+                                        random_valid=False, lower=False, vectors='glove.840B.300d')
     print(' > Data loaded')
 
-    # bias_vocab = train_data.fields['bias'].vocab
     title_vocab = train_data.fields['title'].vocab
     text_vocab = train_data.fields['text'].vocab
-    model = BiLSTM(len(title_vocab), len(text_vocab), title_vocab.vectors, text_vocab.vectors).to(device)
 
     if model_path is not None:
         print(' > Loading pretrained model')
-        model.load_state_dict(torch.load(model_path, map_location=device))
+        model = torch.load(model_path, map_location=device)
     else:
         print(' > Training model')
+        model = BiLSTM(len(title_vocab), len(text_vocab), title_vocab.vectors, text_vocab.vectors).to(device)
         run_training(model, train_data, test_data)
 
     print(' > Evaluating')
     evaluate(model, test_data)
+
+    print(' > Exporting predictions')
+    save_predictions(model, test_data, 'test-predictions.csv')
 
 
 if __name__ == '__main__':

@@ -158,7 +158,7 @@ def get_dataset(path, val_path=None, full_training=False, random_valid=False, ma
         'format': 'csv',
         'skip_header': True,
         'fields': [
-            ('id', None),
+            ('id', Field(sequential=False, use_vocab=False)),
             ('hyperp', hyperp_field),
             ('bias', bias_field),
             ('publisher', publisher_field),
