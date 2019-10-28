@@ -153,7 +153,7 @@ def test(classifier, Xtest, Ytest, show_cm=False, show_plots=False, show_report=
 
     confusion_m_bias = np.add(confusion_m_bias, confusion_matrix(Ytest_bias, Yguess_bias, labels = inverse_dict[:5]))
     confusion_m_hyperp = np.add(confusion_m_hyperp, confusion_matrix(Ytest_hyperp, Yguess_hyperp, labels = inverse_dict[5:]))
-    confusion_m_hyperp = np.add(confusion_m_joint, confusion_matrix(Ytest_joint, Yguess_joint, labels = joint_labels))
+    confusion_m_joint = np.add(confusion_m_joint, confusion_matrix(Ytest_joint, Yguess_joint, labels = joint_labels))
     if show_cm:
         print('\nConfusion matrix [bias]')
         print(confusion_m_bias)
@@ -165,6 +165,7 @@ def test(classifier, Xtest, Ytest, show_cm=False, show_plots=False, show_report=
     create_confusion_matrix(confusion_m_bias, inverse_dict[:5], y_lim_value=5.0, title=title+"_bias_", show_plots=show_plots, method="TESTING")
     create_confusion_matrix(confusion_m_hyperp, inverse_dict[5:], y_lim_value=2.0, title=title+"_hyperp", show_plots=show_plots, method="TESTING")
     create_confusion_matrix(confusion_m_joint, joint_labels, y_lim_value=5.0, title=title+"_joint", show_plots=show_plots, method="TESTING")
+
 
 def main(argv):
     parser = argparse.ArgumentParser(description='Control everything')
