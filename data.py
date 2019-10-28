@@ -108,11 +108,11 @@ def prepare_csv(path, cleanup=False):
 
     tqdm.pandas()
     print(' > Processing titles')
-    df.title = df.title.apply(clean_text).apply(mn.normalize).apply_progress(mt.tokenize, return_str=True)
+    df.title = df.title.apply(clean_text).apply(mn.normalize).progress_apply(mt.tokenize, return_str=True)
 
     print(' > Processing texts')
-    df.text = df.text.apply(clean_text, line_blacklist=line_blacklist, token_blacklist=token_blacklist).apply_progress(
-        mn.normalize).apply_progress(mt.tokenize, return_str=True)
+    df.text = df.text.apply(clean_text, line_blacklist=line_blacklist, token_blacklist=token_blacklist).progress_apply(
+        mn.normalize).progress_apply(mt.tokenize, return_str=True)
 
     new_path = path.replace('.xz', '')
     df.to_csv(new_path, index=False)
