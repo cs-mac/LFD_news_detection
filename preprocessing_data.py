@@ -81,7 +81,7 @@ def high_information_words(X, y, title):
     '''
     Get and display info on high info words
     '''
-    print(f"\n#### OBTAINING HIGH INFO WORDS [{title}]...")
+    print(f"#### OBTAINING HIGH INFO WORDS [{title}]...")
 
     labelled_words = []
     amount_words = 0

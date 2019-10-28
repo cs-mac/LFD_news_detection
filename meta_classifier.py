@@ -42,7 +42,7 @@ def do_grid_search(X, y, pipeline, parameters, title="", start=False):
             print("\t{0}: {1}".format(param_name, best_parameters[param_name])) 
 
 
-def train(pipeline, X, y, categories, show_plots=False, show_report=False, folds=10, title="title"):
+def train(pipeline, X, y, categories, show_plots=False, show_cm=False, show_report=False, folds=10, title="title"):
     '''
     Train the classifier and evaluate the results
     '''
@@ -54,6 +54,10 @@ def train(pipeline, X, y, categories, show_plots=False, show_report=False, folds
         print(f"Classifier used: {pipeline.named_steps['clf']}")
     except AttributeError as e:
         print(f"Using Stacking Classifier")
+
+    if title=="StackingClassifier":
+        show_cm = True
+        show_report = True
 
     accuracy = 0
     confusion_m = np.zeros(shape=(len(categories),len(categories)))
@@ -75,8 +79,9 @@ def train(pipeline, X, y, categories, show_plots=False, show_report=False, folds
 
     if show_report:
         print(classification_report(y_test_overall, pred_overall, digits=3))
-    print('Confusion matrix')
-    print(confusion_m)
+    if show_cm:        
+        print('Confusion matrix')
+        print(confusion_m)
 
     plt.figure(figsize = (16, 9), dpi=150)
     sn.set(font_scale=1.4) #label size
@@ -92,7 +97,7 @@ def train(pipeline, X, y, categories, show_plots=False, show_report=False, folds
     plt.close()
           
 
-def test(classifier, Xtest, Ytest, categories, show_cm=False, show_plots=False, title="title"):
+def test(classifier, Xtest, Ytest, categories, show_cm=False, show_plots=False, show_report=False, title="title"):
     Yguess = classifier.predict(Xtest)
 
     print(f"\n#### TESTING... [{title}]")
@@ -101,15 +106,21 @@ def test(classifier, Xtest, Ytest, categories, show_cm=False, show_plots=False, 
     except AttributeError as e:
         print(f"Using Stacking Classifier")
 
+    if title=="StackingClassifier":
+        show_cm = True
+        show_report = True        
+
     confusion_m = np.zeros(shape=(len(categories),len(categories)))
 
     print(f"accuracy = {round(accuracy_score(Ytest, Yguess), 5)}\n")
 
-    print(classification_report(Ytest, Yguess))
-    confusion_m = np.add(confusion_m, confusion_matrix(Ytest, Yguess, labels = categories))
+    if show_report:
+        print(classification_report(Ytest, Yguess))
     
-    print('Confusion matrix')
-    print(confusion_m)
+    confusion_m = np.add(confusion_m, confusion_matrix(Ytest, Yguess, labels = categories))
+    if show_cm:
+        print('Confusion matrix')
+        print(confusion_m)
 
     plt.figure(figsize = (10, 5), dpi = 150)
     sn.set(font_scale = 1.4) 
@@ -117,7 +128,7 @@ def test(classifier, Xtest, Ytest, categories, show_cm=False, show_plots=False, 
     hm.set(xticklabels = categories, yticklabels = categories)
     hm.set_yticklabels(hm.get_yticklabels(), rotation=0)
     plt.title('Confusion Matrix ' + title)
-    if show_plots or show_all:
+    if show_plots:
         plt.show()
     plt.savefig('TESTING_' + title + "_confusion_matrix.png")
 
@@ -135,17 +146,6 @@ def main(argv):
         }
     }
     kernel = 'linear'
-
-    ################# REMOVE LATER #######################
-
-    # print("#### Getting Pickle File")
-
-    # import pickle    
-
-    # with open('small_data.pickle', 'rb') as handle:
-    #     Xtrain, Xtest, Ytrain, Ytest = pickle.load(handle)
-
-    ######################################################
 
     if len(argv) == 2:
         X, Y = read_and_process(argv[1])
@@ -176,7 +176,7 @@ def main(argv):
                                 random_state=42)                      
 
     for clf, label in zip([classifier_title, classifier_words, sclf], ['Title_SVM', 'Words_SVM', 'StackingClassifier']):
-        train(clf, Xtrain, Ytrain, categories, show_report=False, title=label, folds=5)
+        train(clf, Xtrain, Ytrain, categories, title=label, folds=5)
         test(clf, Xtest, Ytest, categories, title=label)
 
 if __name__ == '__main__':
