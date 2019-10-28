@@ -26,9 +26,9 @@ def read_corpus(corpus_file, title="Training", train=False):
     print(data.groupby("bias").size(), end="\n\n")
 
     for item in data.itertuples():
-        text, title, bias = item.text, item.title, item.bias
+        text, title, bias, hyperp = item.text, item.title, item.bias, item.hyperp
         documents.append((item.id, title.strip().split(), text.strip().split()))
-        labels.append(bias)
+        labels.append((hyperp, bias))
 
     return documents, labels
     

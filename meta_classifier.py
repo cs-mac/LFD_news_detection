@@ -46,13 +46,30 @@ def do_grid_search(X, y, pipeline, parameters, title="", start=False):
             print("\t{0}: {1}".format(param_name, best_parameters[param_name])) 
 
 
+def create_confusion_matrix(confusion_m, categories, y_lim_value=5, title="cm", show_plots=False, method="TRAINING"):
+    '''
+    Creates a confusion matrix
+    '''
+    plt.figure(figsize = (16, 9), dpi=150)
+    sn.set(font_scale=1.4) #label size
+    hm = sn.heatmap(confusion_m, annot=True, fmt='g', annot_kws={"size": 16}) #font size
+    hm.set_ylim(y_lim_value, 0)
+    hm.set(xticklabels = categories, yticklabels = categories)
+    hm.set_yticklabels(hm.get_yticklabels(), rotation=0)
+    plt.title(title + ' Confusion Matrix')
+    if show_plots:
+        plt.show()
+    hm.figure.savefig(method + "_" + title + '_confusion_matrix' + '.png', figsize = (16, 9), dpi=150)
+    plt.close()
+
+
 def train(pipeline, X, y, categories, show_plots=False, show_cm=False, show_report=False, folds=10, title="title"):
     '''
     Train the classifier and evaluate the results
     '''
     print(f"\n#### TRAINING... [{title}]")
     X = np.array(X)
-    y = np.array(y)
+    y = np.array([bias for hyperp, bias in y])
 
     try:
         print(f"Classifier used: {pipeline.named_steps['clf']}")
@@ -87,24 +104,20 @@ def train(pipeline, X, y, categories, show_plots=False, show_cm=False, show_repo
         print('Confusion matrix')
         print(confusion_m)
 
-    plt.figure(figsize = (16, 9), dpi=150)
-    sn.set(font_scale=1.4) #label size
-    hm = sn.heatmap(confusion_m, annot=True, fmt='g', annot_kws={"size": 16}) #font size
-    hm.set_ylim(5.0, 0)
-    hm.set(xticklabels = categories, yticklabels = categories)
-    hm.set_yticklabels(hm.get_yticklabels(), rotation=0)
-    plt.title(title + ' Confusion Matrix')
-    if show_plots:
-        plt.show()
-    hm.figure.savefig('TRAINING_'+ title + '_confusion_matrix' + '.png', figsize = (16, 9), dpi=150)
-    plt.close()
+    create_confusion_matrix(confusion_m, categories, y_lim_value=5.0, title=title, show_plots= show_plots)
           
 
 def test(classifier, Xtest, Ytest, show_cm=False, show_plots=False, show_report=False, title="title"):
+    '''
+    Test the classifier and evaluate the results
+    '''    
     inverse_dict = ["left", "left-center", "least", "right-center", "right"]
+    hyperp_cat = ["false", "true"]
     Yguess = classifier.predict(Xtest)
-    Ytest = [inverse_dict[x] for x in Ytest]
-    Yguess = [inverse_dict[x] for x in Yguess]
+    Ytest_bias = [inverse_dict[bias] for hyperp, bias in Ytest]
+    Yguess_bias = [inverse_dict[bias] for bias in Yguess]
+    Ytest_hyperp = [hyperp for hyperp, bias in Ytest]
+    Yguess_hyperp = ["true" if (inverse_dict[bias]=="left" or inverse_dict[bias]=="right") else "false" for bias in Yguess]
 
     print(f"\n#### TESTING... [{title}]")
     try:
@@ -116,35 +129,29 @@ def test(classifier, Xtest, Ytest, show_cm=False, show_plots=False, show_report=
         show_cm = True
         show_report = True        
         with open('output_stacked_clf.txt', 'w') as f:
-            for x_id, bias in zip([i[0] for i in Xtest], Yguess):
-                if bias == "left" or bias == "right":
-                    f.write(str(x_id) + " true " + bias + "\n")
-                else:
-                    f.write(str(x_id) + " false " + bias + "\n")
+            for x_id, bias, hyperp in zip([i[0] for i in Xtest], Yguess_bias, Yguess_hyperp):
+                f.write(str(x_id) + " " + hyperp + " " + bias + "\n")
 
-    confusion_m = np.zeros(shape=(len(inverse_dict), len(inverse_dict)))
+    confusion_m_bias = np.zeros(shape=(len(inverse_dict), len(inverse_dict)))
+    confusion_m_hyperp = np.zeros(shape=(len(hyperp_cat), len(hyperp_cat)))
 
-    print(f"accuracy = {round(accuracy_score(Ytest, Yguess), 5)}\n")
+    print(f"accuracy (bias) = {round(accuracy_score(Ytest_bias, Yguess_bias), 5)}\n")
+    print(f"accuracy (hyperp) = {round(accuracy_score(Ytest_hyperp, Yguess_hyperp), 5)}\n")
 
     if show_report:
-        print(classification_report(Ytest, Yguess))
-    
-    confusion_m = np.add(confusion_m, confusion_matrix(Ytest, Yguess, labels = inverse_dict))
-    if show_cm:
-        print('Confusion matrix')
-        print(confusion_m)
+        print(classification_report(Ytest_bias, Yguess_bias))
+        print(classification_report(Ytest_hyperp, Yguess_hyperp))
 
-    plt.figure(figsize = (10, 5), dpi = 150)
-    sn.set(font_scale = 1.4) 
-    hm = sn.heatmap(confusion_m, annot = True, fmt = 'g', annot_kws = {"size": 16}) 
-    hm.set_ylim(5.0, 0)
-    hm.set(xticklabels = inverse_dict, yticklabels = inverse_dict)
-    hm.set_yticklabels(hm.get_yticklabels(), rotation=0)
-    plt.title('Confusion Matrix ' + title)
-    if show_plots:
-        plt.show()
-    plt.savefig('TESTING_' + title + "_confusion_matrix.png")
-    plt.close()
+    confusion_m_bias = np.add(confusion_m_bias, confusion_matrix(Ytest_bias, Yguess_bias, labels = inverse_dict))
+    confusion_m_hyperp = np.add(confusion_m_hyperp, confusion_matrix(Ytest_hyperp, Yguess_hyperp, labels = hyperp_cat))
+    if show_cm:
+        print('\nConfusion matrix [bias]')
+        print(confusion_m_bias)
+        print('\nConfusion matrix [hyperpartisan]')
+        print(confusion_m_hyperp)
+
+    create_confusion_matrix(confusion_m_bias, inverse_dict, y_lim_value=5.0, title=title+"_bias_", show_plots=show_plots, method="TESTING")
+    create_confusion_matrix(confusion_m_hyperp, hyperp_cat, y_lim_value=2.0, title=title+"_hyperp", show_plots=show_plots, method="TESTING")
 
 
 def main(argv):
@@ -176,8 +183,8 @@ def main(argv):
         print("Usage: python3 meta_classifier.py <trainset> <testset>", file=sys.stderr)
 
     translation_dict = {"left": 0, "left-center": 1, "least": 2, "right-center": 3, "right": 4}
-    Ytrain = np.array([translation_dict[i] for i in Ytrain])
-    Ytest = np.array([translation_dict[i] for i in Ytest])
+    Ytrain = np.array([(hyperp, translation_dict[bias]) for hyperp, bias in Ytrain])
+    Ytest = np.array([(hyperp, translation_dict[bias]) for hyperp, bias in Ytest])
     
     categories = [0, 1, 2, 3, 4] 
 
