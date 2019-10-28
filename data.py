@@ -6,6 +6,7 @@ from sacremoses import MosesTokenizer, MosesPunctNormalizer
 import pandas as pd
 import numpy as np
 from torchtext.data import TabularDataset, Field
+from tqdm import tqdm
 
 
 def clean_text(txt, flat=True, line_blacklist={''}, token_blacklist=set()):
@@ -81,7 +82,7 @@ def split_df(df):
     return train_df, valid_df
 
 
-def prepare_csv(path):
+def prepare_csv(path, cleanup=False):
     if path.endswith('.csv'):
         return path
 
@@ -96,11 +97,12 @@ def prepare_csv(path):
     mt = MosesTokenizer()
     mn = MosesPunctNormalizer()
 
-    print(' > Generating line blacklist')
-    line_blacklist = get_line_blacklist(df)
-
-    print(' > Generating token blacklist')
-    token_blacklist = get_token_blacklist(df)
+    line_blacklist, token_blacklist = None, None
+    if cleanup:
+        print(' > Generating line blacklist')
+        line_blacklist = get_line_blacklist(df)
+        print(' > Generating token blacklist')
+        token_blacklist = get_token_blacklist(df)
 
     tqdm.pandas()
     print(' > Processing titles')
@@ -117,11 +119,11 @@ def prepare_csv(path):
 
 
 def split_csv(full_path):
-    train_path = full_path.replace('.full.', '.train.')
-    val_path = full_path.replace('.full.', '.val.')
+    train_path = full_path.replace('.csv', '.train.csv')
+    val_path = full_path.replace('.csv', '.val.csv')
 
     if os.path.isfile(train_path) and os.path.isfile(val_path):
-        return train_path, val_path, full_path
+        return train_path, val_path
 
     df = pd.read_csv(full_path)
 
