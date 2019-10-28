@@ -27,7 +27,7 @@ def read_corpus(corpus_file, title="Training", train=False):
 
     for item in data.itertuples():
         text, title, bias = item.text, item.title, item.bias
-        documents.append((title.strip().split(), text.strip().split()))
+        documents.append((item.id, title.strip().split(), text.strip().split()))
         labels.append(bias)
 
     return documents, labels
@@ -158,14 +158,14 @@ def read_and_process(file, title="", train=False):
     
     categories = set(Y)
     
-    preprocessing([text for title, text in X])
+    preprocessing([text for _, title, text in X])
 
-    X_high_info = return_high_info([text for title, text in X], Y, "data")
+    X_high_info = return_high_info([text for _, title, text in X], Y, "data")
     
     # X_pos = return_pos_tagged(X, "data")
     
     # X_ent = return_named_ent(X, "data")
     
-    X = [(title, words, x_high) for (title, words), x_high in zip(X, X_high_info)]
+    X = [(x_id, title, words, x_high) for (x_id, title, words), x_high in zip(X, X_high_info)]
 
     return X, Y

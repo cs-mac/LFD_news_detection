@@ -17,13 +17,13 @@ class FeaturesExtractor(BaseEstimator, TransformerMixin):
     def fit(self, x, y=None):
         return self
 
-    def transform(self, subs):
+    def transform(self, articles):
         features = {}
-        features['title'] = [title for (title, words, x_high) in subs]
-        # features['char'] = [" ".join(item[1]) for item in subs]
-        features['text'] = [words for (title, words, x_high) in subs]
-        features['text_high'] = [x_high for (title, words, x_high) in subs]
-        # features['named_ent'] = [item[3] for item in subs]
+        features['title'] = [title for (x_id, title, words, x_high) in articles]
+        # features['char'] = ["".join(words) for (x_id, title, words, x_high) in articles]
+        features['text'] = [words for (x_id, title, words, x_high) in articles]
+        features['text_high'] = [x_high for (x_id, title, words, x_high) in articles]
+        # features['named_ent'] = [x_ent for (x_id, x_ent, title, words, x_high) in articles]
 
         return features
 
@@ -116,7 +116,6 @@ def model_title():
         ('features', FeaturesExtractor()),
         # Use FeatureUnion to combine the features from subject and body
         ('union', FeatureUnion(
-            #n_jobs = -1,
             transformer_list = [
                
                 # Pipeline for title words
@@ -136,57 +135,6 @@ def model_title():
         ('clf', clfs[2]),
     ])
     return classifier    
-
-
-def model_test():
-
-    # SCORES ON WORDS [TRAINING | TEST | STACKING TRAINING | STACKING TEST] (WITHOUT ANY TUNING ON SMALL_DATA with MORE BALANCED)
-    # KNN =                     KUT  | KUT  | KUT  | KUT  
-    # RandomForest =            0.74 | 0.72 | 0.65 | 0.72
-    # MultinomialNB =           0.67 | 0.66 | 0.56 | 0.66
-    # LogisticRegression =      0.73 | 0.72 | 0.68 | 0.72 
-    # LogisitcRegressionCV =    0.79 | 0.76 | 0.70 | 0.76   (SLOW)
-    # '' '' + solver=saga =     0.78 | 0.75 | SLOW | SLOW   (SLOW*2)
-    # NuSVC =                   0.52 | 0.62 | 0.41 | 0.42   (SLOW)
-    # NuSVC (Gamme=Scale) =     0.68 | 0.72 | 0.68 | 0.72   (SLOW)
-    # LinearSVC =               0.79 | 0.76 | 0.70 | 0.76 
-    # PassiveAgressive =        0.79 | 0.76 | 0.70 | 0.76
-
-    clfs = [KNeighborsClassifier(n_neighbors=5), 
-            RandomForestClassifier(random_state=42), 
-            MultinomialNB(), 
-            LogisticRegression(),
-            NuSVC(gamma="scale"),  
-            LinearSVC(),
-            LogisticRegressionCV(multi_class="multinomial", solver="saga"),
-            PassiveAggressiveClassifier(),
-            ]
-    
-    classifier = Pipeline([
-        # Extract the features
-        ('features', FeaturesExtractor()),
-        # Use FeatureUnion to combine the features from subject and body
-        ('union', FeatureUnion(
-            transformer_list = [
-                # Pipeline bag-of-words model 
-                ('words', Pipeline([
-                    ('selector', ItemSelector(key='text')),
-                    ('tfidf', TfidfVectorizer(preprocessor = identity, tokenizer = identity, 
-                                              max_df = .2)),
-                    ('chi-square', SelectKBest(chi2, 3000)),
-                ])),
-                # Pipeline for high info words bag-of-words model 
-                ('text_high', Pipeline([
-                    ('selector', ItemSelector(key='text_high')),
-                    ('tfidf', TfidfVectorizer(preprocessor = identity, tokenizer = identity, 
-                                              max_df = .2)),
-                ])),
-            ],
-        )),
-        # Use a classifier on the combined features
-        ('clf', clfs[7]),
-    ])
-    return classifier
 
 
 def model_meta():

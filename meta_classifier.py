@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 
+import os
 import sys
 
+import joblib
+import argparse
 import numpy as np
 import pandas as pd
 import seaborn as sn
@@ -15,6 +18,7 @@ from sklearn.model_selection import (GridSearchCV, StratifiedKFold,
 
 from ml_models import *
 from preprocessing_data import read_and_process
+
 
 def do_grid_search(X, y, pipeline, parameters, title="", start=False):
     '''
@@ -109,8 +113,16 @@ def test(classifier, Xtest, Ytest, categories, show_cm=False, show_plots=False, 
     if title=="StackingClassifier":
         show_cm = True
         show_report = True        
+        inverse_dict = ["left", "left-center", "least", "right-center", "right"]
+        with open('output_stacked_clf.txt', 'a') as f:
+            for x_id, bias in zip([i[0] for i in Xtest], Yguess):
+                bias = inverse_dict[bias]
+                if bias == "left" or bias == "right":
+                    f.write(str(x_id) + " true " + bias + "\n")
+                else:
+                    f.write(str(x_id) + " false " + bias + "\n")
 
-    confusion_m = np.zeros(shape=(len(categories),len(categories)))
+    confusion_m = np.zeros(shape=(len(categories), len(categories)))
 
     print(f"accuracy = {round(accuracy_score(Ytest, Yguess), 5)}\n")
 
@@ -134,6 +146,11 @@ def test(classifier, Xtest, Ytest, categories, show_cm=False, show_plots=False, 
 
 
 def main(argv):
+    parser = argparse.ArgumentParser(description='Control everything')
+    parser.add_argument('files', nargs="+")
+    parser.add_argument('--model', help="Please provide a .pkl model")
+    parser.add_argument('--save', help="Use: --save [filename] ; Saves the model, with the given filename")
+    args = parser.parse_args()
 
     parameters = {
         'linear': {  
@@ -147,12 +164,12 @@ def main(argv):
     }
     kernel = 'linear'
 
-    if len(argv) == 2:
-        X, Y = read_and_process(argv[1], train=True)
+    if len(args.files) == 1:
+        X, Y = read_and_process(args.files[0], train=True)
         Xtrain, Xtest, Ytrain, Ytest = train_test_split(X, Y, test_size=0.20, random_state=42)
-    elif len(argv) == 3:
-        Xtrain, Ytrain = read_and_process(argv[1], title="Train", train=True)
-        Xtest, Ytest = read_and_process(argv[2], title="Test")
+    elif len(args.files) == 2:
+        Xtrain, Ytrain = read_and_process(args.files[0], title="Train", train=True)
+        Xtest, Ytest = read_and_process(args.files[1], title="Test")
     else:
         print("Usage: python3 meta_classifier.py <trainset> <testset>", file=sys.stderr)
 
@@ -165,7 +182,6 @@ def main(argv):
     classifier_words = model_words()
     classifier_title = model_title()
     classifier_meta = model_meta()
-    classifier_test = model_test()
 
     do_grid_search(Xtrain, Ytrain, classifier_words, parameters[kernel], title=kernel, start = False)
     do_grid_search(Xtrain, Ytrain, classifier_title, parameters[kernel], title=kernel, start = False)
@@ -175,9 +191,16 @@ def main(argv):
                                 meta_classifier=classifier_meta,
                                 random_state=42)                      
 
-    for clf, label in zip([classifier_title, classifier_words, sclf], ['Title_SVM', 'Words_SVM', 'StackingClassifier']):
-        train(clf, Xtrain, Ytrain, categories, title=label, folds=5)
-        test(clf, Xtest, Ytest, categories, title=label)
+    if args.model:
+        the_classifier = joblib.load(args.model)
+        test(the_classifier, Xtest, Ytest, categories, title='StackingClassifier')
+    else:
+        for clf, label in zip([classifier_title, classifier_words, sclf], ['Title_SVM', 'Words_SVM', 'StackingClassifier']):
+            train(clf, Xtrain, Ytrain, categories, show_report=False, title=label, folds=5)
+            if args.save:
+                joblib.dump(clf, args.save+".pkl") 
+            test(clf, Xtest, Ytest, categories, title=label)
 
 if __name__ == '__main__':
     main(sys.argv)
+
