@@ -101,8 +101,11 @@ def train(pipeline, X, y, categories, show_plots=False, show_cm=False, show_repo
     plt.close()
           
 
-def test(classifier, Xtest, Ytest, categories, show_cm=False, show_plots=False, show_report=False, title="title"):
+def test(classifier, Xtest, Ytest, show_cm=False, show_plots=False, show_report=False, title="title"):
+    inverse_dict = ["left", "left-center", "least", "right-center", "right"]
     Yguess = classifier.predict(Xtest)
+    Ytest = [inverse_dict[x] for x in Ytest]
+    Yguess = [inverse_dict[x] for x in Yguess]
 
     print(f"\n#### TESTING... [{title}]")
     try:
@@ -113,23 +116,21 @@ def test(classifier, Xtest, Ytest, categories, show_cm=False, show_plots=False, 
     if title=="StackingClassifier":
         show_cm = True
         show_report = True        
-        inverse_dict = ["left", "left-center", "least", "right-center", "right"]
         with open('output_stacked_clf.txt', 'a') as f:
             for x_id, bias in zip([i[0] for i in Xtest], Yguess):
-                bias = inverse_dict[bias]
                 if bias == "left" or bias == "right":
                     f.write(str(x_id) + " true " + bias + "\n")
                 else:
                     f.write(str(x_id) + " false " + bias + "\n")
 
-    confusion_m = np.zeros(shape=(len(categories), len(categories)))
+    confusion_m = np.zeros(shape=(len(inverse_dict), len(inverse_dict)))
 
     print(f"accuracy = {round(accuracy_score(Ytest, Yguess), 5)}\n")
 
     if show_report:
         print(classification_report(Ytest, Yguess))
     
-    confusion_m = np.add(confusion_m, confusion_matrix(Ytest, Yguess, labels = categories))
+    confusion_m = np.add(confusion_m, confusion_matrix(Ytest, Yguess, labels = inverse_dict))
     if show_cm:
         print('Confusion matrix')
         print(confusion_m)
@@ -137,7 +138,7 @@ def test(classifier, Xtest, Ytest, categories, show_cm=False, show_plots=False, 
     plt.figure(figsize = (10, 5), dpi = 150)
     sn.set(font_scale = 1.4) 
     hm = sn.heatmap(confusion_m, annot = True, fmt = 'g', annot_kws = {"size": 16}) 
-    hm.set(xticklabels = categories, yticklabels = categories)
+    hm.set(xticklabels = inverse_dict, yticklabels = inverse_dict)
     hm.set_yticklabels(hm.get_yticklabels(), rotation=0)
     plt.title('Confusion Matrix ' + title)
     if show_plots:
@@ -193,13 +194,13 @@ def main(argv):
 
     if args.model:
         the_classifier = joblib.load(args.model)
-        test(the_classifier, Xtest, Ytest, categories, title='StackingClassifier')
+        test(the_classifier, Xtest, Ytest, title='StackingClassifier')
     else:
         for clf, label in zip([classifier_title, classifier_words, sclf], ['Title_SVM', 'Words_SVM', 'StackingClassifier']):
             train(clf, Xtrain, Ytrain, categories, show_report=False, title=label, folds=5)
             if args.save:
                 joblib.dump(clf, args.save+".pkl") 
-            test(clf, Xtest, Ytest, categories, title=label)
+            test(clf, Xtest, Ytest, title=label)
 
 if __name__ == '__main__':
     main(sys.argv)
