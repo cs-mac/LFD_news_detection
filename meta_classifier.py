@@ -115,7 +115,7 @@ def test(classifier, Xtest, Ytest, show_cm=False, show_plots=False, show_report=
     if title=="StackingClassifier":
         show_cm = True
         show_report = True        
-        with open('output_stacked_clf.txt', 'a') as f:
+        with open('output_stacked_clf.txt', 'w') as f:
             for x_id, bias in zip([i[0] for i in Xtest], Yguess):
                 if bias == "left" or bias == "right":
                     f.write(str(x_id) + " true " + bias + "\n")
