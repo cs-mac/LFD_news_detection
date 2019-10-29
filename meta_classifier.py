@@ -69,8 +69,11 @@ def train(pipeline, X, y, categories, show_plots=False, show_cm=False, show_repo
     '''
     print(f"\n#### TRAINING... [{title}]")
     X = np.array(X)
-    y = np.array([bias for hyperp, bias in y])
-
+    y = np.array(y)
+    y_bias = np.array([bias for hyperp, bias in y])
+    inverse_dict = ["right", "left-center", "left", "least", "right-center", "true", "false"]
+    hyperp_cat = ["false", "true"]
+    
     try:
         print(f"Classifier used: {pipeline.named_steps['clf']}")
     except AttributeError as e:
@@ -80,39 +83,57 @@ def train(pipeline, X, y, categories, show_plots=False, show_cm=False, show_repo
         show_cm = True
         show_report = True
 
-    accuracy = 0
-    confusion_m = np.zeros(shape=(len(categories),len(categories)))
-    kf = StratifiedKFold(n_splits=folds).split(X, y)
-    pred_overall = np.array([])
-    y_test_overall = np.array([])
+    accuracy_bias, accuracy_hyperp = 0, 0
+    confusion_m_bias = np.zeros(shape=(len(categories),len(categories)))
+    confusion_m_hyperp = np.zeros(shape=(len(hyperp_cat),len(hyperp_cat)))
+    kf = StratifiedKFold(n_splits=folds).split(X, y_bias)
+    pred_overall_bias = np.array([])
+    y_test_overall_bias = np.array([])
+    pred_overall_hyperp = np.array([])
+    y_test_overall_hyperp = np.array([])
     for train_index, test_index in kf:
+        y_hyperp = np.array([hyperp for hyperp, bias in y])    
         X_train, X_test = X[train_index], X[test_index]
-        y_train, y_test = y[train_index], y[test_index]
+        y_train, y_test = y_bias[train_index], y_bias[test_index]
+        y_train_hyperp, y_test_hyperp = y_hyperp[train_index], [inverse_dict[hp] for hp in y_hyperp[test_index]]
         trained  = pipeline.fit(X_train, y_train) 
-        pred = pipeline.predict(X_test)
-        accuracy += accuracy_score(y_test, pred)
-        confusion_m = np.add(confusion_m, confusion_matrix(y_test, pred, labels=categories))
-        
-        pred_overall = np.concatenate([pred_overall, pred])
-        y_test_overall = np.concatenate([y_test_overall, y_test])
+        pred_bias = pipeline.predict(X_test)
+        pred_hyperp = ["true" if (inverse_dict[bias]=="left" or inverse_dict[bias]=="right") else "false" for bias in pred_bias]
+        accuracy_bias += accuracy_score(y_test, pred_bias)
+        accuracy_hyperp += accuracy_score(y_test_hyperp, pred_hyperp)
+        confusion_m_bias = np.add(confusion_m_bias, confusion_matrix(y_test, pred_bias, labels=categories))
+        confusion_m_hyperp = np.add(confusion_m_hyperp, confusion_matrix(y_test_hyperp, pred_hyperp, labels=hyperp_cat))
 
-    print("\nAverage accuracy: %.6f"%(accuracy/folds) + "\n")
+        pred_overall_bias = np.concatenate([pred_overall_bias, pred_bias])
+        y_test_overall_bias = np.concatenate([y_test_overall_bias, y_test])
+
+        pred_overall_hyperp = np.concatenate([pred_overall_hyperp, pred_hyperp])
+        y_test_overall_hyperp = np.concatenate([y_test_overall_hyperp, y_test_hyperp])
+
+    print("\nAverage accuracy (bias): %.6f"%(accuracy_bias/folds) + "\n")
+    print("Average accuracy (hyperpartisan): %.6f"%(accuracy_hyperp/folds) + "\n")
 
     if show_report:
-        print(classification_report(y_test_overall, pred_overall, digits=3))
+        print('Classification report [bias]\n')
+        print(classification_report(y_test_overall_bias, pred_overall_bias, digits=2))
+        print('Classification report [hyperpartisan]\n')
+        print(classification_report(y_test_overall_hyperp, pred_overall_hyperp, digits=2))
     if show_cm:        
-        print('Confusion matrix')
-        print(confusion_m)
+        print('\nConfusion matrix (bias)\n')
+        print(confusion_m_bias)
+        print('Confusion matrix (hyperpartisan)\n')
+        print(confusion_m_hyperp)
 
-    create_confusion_matrix(confusion_m, categories, y_lim_value=5.0, title=title, show_plots= show_plots)
-          
+    create_confusion_matrix(confusion_m_bias, inverse_dict[:5], y_lim_value=5.0, title=title+"_bias_", show_plots= show_plots)
+    create_confusion_matrix(confusion_m_hyperp, hyperp_cat, y_lim_value=2.0, title=title+"_hyperp_", show_plots= show_plots)          
+
 
 def test(classifier, Xtest, Ytest, show_cm=False, show_plots=False, show_report=False, title="title"):
     '''
     Test the classifier and evaluate the results
     '''    
-    inverse_dict = ["left", "left-center", "least", "right-center", "right", "true", "false"]
-    joint_labels = ["true left", "true right", "false center-left", "false center-right", "false least"]
+    inverse_dict = ["right", "left-center", "left", "least", "right-center", "true", "false"]
+    joint_labels = ["false least", "false left-center", "false right-center", "true left", "true right"]
     Yguess = classifier.predict(Xtest)
     Ytest_bias = [inverse_dict[bias] for hyperp, bias in Ytest]
     Yguess_bias = [inverse_dict[bias] for bias in Yguess]
@@ -188,14 +209,15 @@ def main(argv):
 
     if len(args.files) == 1:
         X, Y = read_and_process(args.files[0], train=True)
-        Xtrain, Xtest, Ytrain, Ytest = train_test_split(X, Y, test_size=0.20, random_state=42)
+        Xtrain, Xtest, Ytrain, Ytest = train_test_split(X, Y, test_size=0.2, random_state=42)
+        Xtrain, Ytrain = X, Y
     elif len(args.files) == 2:
         Xtrain, Ytrain = read_and_process(args.files[0], title="Train", train=True)
         Xtest, Ytest = read_and_process(args.files[1], title="Test")
     else:
         print("Usage: python3 meta_classifier.py <trainset> <testset>", file=sys.stderr)
 
-    translation_dict = {"left": 0, "left-center": 1, "least": 2, "right-center": 3, "right": 4, "true": 5, "false": 6}
+    translation_dict = {"right": 0, "left-center": 1, "left": 2, "least": 3, "right-center": 4, "true": 5, "false": 6}
     Ytrain = np.array([(translation_dict[hyperp], translation_dict[bias]) for hyperp, bias in Ytrain])
     Ytest = np.array([(translation_dict[hyperp], translation_dict[bias]) for hyperp, bias in Ytest])
 
