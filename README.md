@@ -4,7 +4,7 @@ Hyper Partisan News Detection (SemEval019)
 ## Requirements
 
  - Python3
- - Python packages in `requirements.txt`
+ - Python packages in `environment.yml` (using Anaconda)
 
 ## Usage
 
