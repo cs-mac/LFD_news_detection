@@ -85,10 +85,11 @@ def split_df(df):
 
 
 def prepare_csv(path, cleanup=False):
-    if path.endswith('.csv'):
+    if path.endswith('.processed.csv'):
         return path
 
-    df = pd.read_csv(path, compression='xz', sep='\t', encoding='utf-8',
+    compression = 'xz' if path.endswith('.xz') else None
+    df = pd.read_csv(path, compression=compression, sep='\t', encoding='utf-8',
                      usecols=['id', 'hyperp', 'bias', 'publisher', 'title', 'text']).dropna()
 
     print(' > Cleaning up data')
@@ -114,15 +115,15 @@ def prepare_csv(path, cleanup=False):
     df.text = df.text.apply(clean_text, line_blacklist=line_blacklist, token_blacklist=token_blacklist).progress_apply(
         mn.normalize).progress_apply(mt.tokenize, return_str=True)
 
-    new_path = path.replace('.xz', '')
+    new_path = path.replace('.xz', '').replace('.csv', '.processed.csv')
     df.to_csv(new_path, index=False)
 
     return new_path
 
 
 def split_csv(full_path):
-    train_path = full_path.replace('.csv', '.train.csv')
-    val_path = full_path.replace('.csv', '.val.csv')
+    train_path = full_path.replace('.csv', '.processed.train.csv')
+    val_path = full_path.replace('.csv', '.processed.val.csv')
 
     if os.path.isfile(train_path) and os.path.isfile(val_path):
         return train_path, val_path

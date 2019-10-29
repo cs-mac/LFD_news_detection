@@ -59,11 +59,17 @@ def evaluate(model, data):
     hyperp_true = ['true' if bias_names[i] in {'left', 'right'} else 'false' for i in bias_true]
     hyperp_pred = ['true' if bias_names[i] in {'left', 'right'} else 'false' for i in bias_pred]
 
-    print(' > Hyperp results:')
+    print('\n > Hyperp results:')
     print(classification_report(hyperp_true, hyperp_pred))
 
-    print(' > Bias results:')
+    print('\n > Bias results:')
     print(classification_report(bias_true, bias_pred, target_names=bias_names))
+
+    print('\n > Joint results:')
+    joint_true = ['{} {}'.format(h, bias_names[i]) for i, h in zip(bias_true, hyperp_true)]
+    joint_pred = ['{} {}'.format(h, bias_names[i]) for i, h in zip(bias_pred, hyperp_pred)]
+    print(classification_report(joint_true, joint_pred))
+
     print('', confusion_matrix(bias_true, bias_pred))
 
     # print(classification_report(bias_true, bias_pred, target_names=bias_names, labels=bias_labels))
