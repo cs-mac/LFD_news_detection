@@ -51,15 +51,15 @@ def create_confusion_matrix(confusion_m, categories, y_lim_value=5, title="cm", 
     Creates a confusion matrix
     '''
     plt.figure(figsize = (16, 9), dpi=150)
-    sn.set(font_scale=1.4) #label size
-    hm = sn.heatmap(confusion_m, annot=True, fmt='g', annot_kws={"size": 16}) #font size
+    sn.set(font_scale=2.5) #label size
+    hm = sn.heatmap(confusion_m, annot=True, fmt='g', annot_kws={"size": 32}) #font size
     hm.set_ylim(y_lim_value, 0)
     hm.set(xticklabels = categories, yticklabels = categories)
     hm.set_yticklabels(hm.get_yticklabels(), rotation=0)
     plt.title(title + ' Confusion Matrix')
     if show_plots:
         plt.show()
-    hm.figure.savefig(method + "_" + title + '_confusion_matrix' + '.png', figsize = (16, 9), dpi=150)
+    hm.figure.savefig(method + "_" + title + '_confusion_matrix' + '.png', figsize = (16, 9), dpi=150, bbox_inches="tight")
     plt.close()
 
 
@@ -210,7 +210,7 @@ def main(argv):
     if len(args.files) == 1:
         X, Y = read_and_process(args.files[0], train=True)
         Xtrain, Xtest, Ytrain, Ytest = train_test_split(X, Y, test_size=0.2, random_state=42)
-        Xtrain, Ytrain = X, Y
+        # Xtrain, Ytrain = X, Y # to train on all training data
     elif len(args.files) == 2:
         Xtrain, Ytrain = read_and_process(args.files[0], title="Train", train=True)
         Xtest, Ytest = read_and_process(args.files[1], title="Test")
