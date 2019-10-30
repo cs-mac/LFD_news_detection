@@ -100,7 +100,7 @@ def prepare_csv(path, cleanup=False):
     mt = MosesTokenizer()
     mn = MosesPunctNormalizer()
 
-    line_blacklist, token_blacklist = None, None
+    line_blacklist, token_blacklist = set(), set()
     if cleanup:
         print(' > Generating line blacklist')
         line_blacklist = get_line_blacklist(df)
