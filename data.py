@@ -16,6 +16,8 @@ def clean_text(txt, flat=True, line_blacklist={''}, token_blacklist=set()):
         return '.'
 
     txt = ' '.join(lines)
+    if len(txt.strip()) == 0:
+        return '.'
 
     if '?' in txt and txt.index('?') != len(txt) - 1:
         first_idx = txt.index('?')
